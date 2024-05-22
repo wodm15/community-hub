@@ -9,6 +9,7 @@ const router = express.Router();
 
 //사용자 회원가입 api
 router.post('/sign-up', async(req,res,next)=>{
+    try{
     const {email, password, name, age, gender, profileImage} =req.body;
 
     //동일 이메일 확인
@@ -39,6 +40,9 @@ router.post('/sign-up', async(req,res,next)=>{
     })
 
     return res.status(201).json({message: "회원가입이 완료되었습니다."});
+}catch (err){
+    next(err);
+}
 });
 
     //로그인 api
