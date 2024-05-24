@@ -24,8 +24,20 @@ model Users {
   UserInfos UserInfos?  //1:1 한명은 한명의 정보
   Posts Posts[]         // 1:N 한명은 포스트 여러개 가능
   Comments Comments[]   //1:N 한명은 코멘트 여러개 가능
-
+  UserHistories UserHistories[] //1:n
   @@map("Users")
+}
+
+model UserHistories {
+  UserHistoryId String @id @default(uuid()) @map("UserHistoryId")
+  UserId Int @map("UserId") // 외래키
+  changeField String @map("changeField")  //변경된 필드명
+  oldValue      String?  @map("oldValue") // 변경 전 값
+  newValue      String   @map("newValue") // 변경 후 값
+  changedAt     DateTime @default(now()) @map("changedAt")
+
+  Users Users @relation(fields: [UserId], references: [userId], onDelete:Cascade)
+  @@map("UserHistries")
 }
 
 model UserInfos {

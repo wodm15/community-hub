@@ -54,6 +54,52 @@ router.post('/sign-up', async(req,res,next)=>{
 }
 });
 
+//사용자 정보 수정 api (+ histoies 트랜잭션 추가)
+router.patch('/users',authMiddleware, async(req, res, next)=>{
+    const {userId} = req.user;
+    const updatedData = req.body;   //여기에 {name, age, gender, profileImage}가 들어감
+    //수정되기 전 사용자 정보 데이터 조회하기
+    const userInfo = await prisma.userInfos.findFirst({
+        where: {UserId : +userId},
+    });
+
+    //사용자 update 와 histories 같이 묶어서 트랜잭션
+    await prisma.$transaction(async (tx)=>{
+        await tx.userInfos.update({
+            data: {
+                ...updatedData //updateData 풀기 
+            },
+            where: { UserId : +userId},
+        });
+
+        for (let key in updatedData){
+            //만약 변경된 데이터가 있을 경우
+            //   UserHistoryId String @id @default(uuid()) @map("UserHistoryId")
+            //   UserId Int @map("UserId") // 외래키
+            //   changeField String @map("changeField")  //변경된 필드명
+            //   oldValue      String?  @map("oldValue") // 변경 전 값
+            //   newValue      String   @map("newValue") // 변경 후 값
+            //   changedAt     DateTime @default(now()) @map("changedAt")
+            if(userInfo[key] !== updatedData[key]){
+                await tx.userHistories.create({
+                    data: {
+                        UserId: +userId,
+                        changeField: key,
+                        oldValue: String(userInfo[key]), //int 가 올경우도 있음
+                        newValue: String(updatedData[key]),
+                    }
+                });
+            }
+        }
+    },{isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,})
+
+    return res.status(201).json({message: "사용자 정보가 변경되었습니다."});
+})
+
+
+
+
+
     //로그인 api
     router.post('/sign-in', async (req, res, next)=>{
         const {email, password} = req.body;
